@@ -7,6 +7,20 @@ assignment.pdf
 outputs/**/*
 !outputs/**/.gitkeep
 
+# Grid calibration audit / investigation (read-only diagnostics; never commit)
+**/grid_audit/
+**/grid_audit*/
+**/grid_calibration_audit/
+**/grid_calibration_validation/
+**/grid_debug/
+outputs/audit_advanced_intermediates.csv
+grid_audit_per_image.csv
+grid_audit_rejection_table.csv
+grid_audit_coverage_accuracy.csv
+grid_audit_failure_categories.csv
+grid_audit_report.md
+grid_calibration_audit.csv
+
 # Unified storage (Colab Drive mirror / local optional)
 cache/
 figures/
@@ -59,6 +73,10 @@ htmlcov/
 
 # --- IDE / OS ---
 .DS_Store
+.cursor/
+
+# --- Python bytecode (repo only; .venv excluded by path) ---
+**/__pycache__/
 .idea/
 .vscode/
 *.swp

@@ -1,6 +1,6 @@
 # Google Colab workflow
 
-**Main notebook:** upload [`notebooks/colab_main.ipynb`](../notebooks/colab_main.ipynb) to `MyDrive/UH_CV/` and open in Colab.
+**Main notebook:** upload [`notebooks/06_colab_main.ipynb`](../notebooks/06_colab_main.ipynb) to `MyDrive/UH_CV/` and open in Colab.
 
 ## 1. Mount Drive and configure paths
 

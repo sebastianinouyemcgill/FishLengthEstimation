@@ -25,6 +25,8 @@ def test_synthetic_grid_spacing() -> None:
     assert 20 <= spacing <= 80
     grid = estimate_grid_calibration(img)
     assert grid.success
+    assert grid.grid_valid
+    assert grid.grid_confidence > 0.4
     assert grid.pixels_per_mm > 0
 
 
@@ -32,4 +34,17 @@ def test_grid_calibration_failure_on_blank() -> None:
     img = np.ones((64, 64, 3), dtype=np.uint8) * 128
     grid = estimate_grid_calibration(img)
     assert not grid.success
+    assert not grid.grid_valid
     assert grid.pixels_per_mm == 0.0
+
+
+def test_fusion_rejects_disagreeing_estimates() -> None:
+    from src.calibration.grid_auto import SpacingEstimate, _fuse_spacing_estimates
+
+    est = [
+        SpacingEstimate(40.0, 0.9),
+        SpacingEstimate(120.0, 0.3),
+    ]
+    fused, conf = _fuse_spacing_estimates(est)
+    assert 35 <= fused <= 45
+    assert conf > 0

@@ -180,6 +180,8 @@ evaluate_run(
 
 ---
 
+See [`docs/repository_overview.md`](docs/repository_overview.md) for a concise file-by-file map and storage layout.
+
 ## Repository architecture
 
 ```

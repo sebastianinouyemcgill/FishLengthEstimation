@@ -263,8 +263,16 @@ def run_advanced_inference(
             width=image.shape[1],
         )
 
+        grid_debug_dir = None
+        if cfg.use_grid_auto_calibration and getattr(cfg, "visualize_grid_debug", False):
+            grid_debug_dir = predictions_path.parent / "grid_debug"
         grid_result = (
-            estimate_grid_calibration(image, cfg=cfg)
+            estimate_grid_calibration(
+                image,
+                cfg=cfg,
+                debug_output_dir=grid_debug_dir,
+                image_id=sample.image_id,
+            )
             if cfg.use_grid_auto_calibration
             else None
         )

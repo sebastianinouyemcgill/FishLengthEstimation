@@ -91,6 +91,7 @@ class ProjectConfig:
     grid_ppm_ratio_min: float = 0.85
     grid_ppm_ratio_max: float = 1.15
     use_depth_metric_scale: bool = False
+    visualize_grid_debug: bool = False
 
     image_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
 
