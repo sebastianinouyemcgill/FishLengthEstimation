@@ -30,7 +30,7 @@ Further detail: [`docs/architecture.md`](docs/architecture.md) · defaults: [`co
 | `validation_lengths` | 51.7 mm | 22.8 mm |
 | `validation_lengths2` | 31.2 mm | 23.9 mm |
 
-`validation_lengths2` fixes a mislabeled outlier (image 2572). Regression is trained on marker-calibrated skeleton features.
+`validation_lengths2` replaced an outlier (image 2572). Regression is trained on marker-calibrated skeleton features.
 
 ---
 
