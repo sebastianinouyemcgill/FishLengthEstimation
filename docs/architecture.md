@@ -1,6 +1,6 @@
 # Architecture (presentation-ready)
 
-Fish length (SH, mm) from RGB images + YOLO fish/marker polygons.
+Fish length (SL, mm) from RGB images + YOLO fish/marker polygons.
 
 ## Recommended pipeline
 
