@@ -90,15 +90,13 @@ regression_model_path=REPO / "outputs/runs/regression_skeleton_validation_length
 
 ### Test submission (`predictions.csv`)
 
-Graded format — `image_id` **with extension**, `predicted_length_mm`:
+Final format — `image_id` **with extension**, `predicted_length_mm`:
 
 ```bash
 python scripts/export_test_predictions.py \
   --model outputs/runs/regression_skeleton_validation_lengths2/regression_model.joblib \
   --output predictions.csv
 ```
-
-Commit **`predictions.csv`** at repo root. Trained models and `outputs/` are gitignored.
 
 ---
 
