@@ -14,7 +14,7 @@ from src.calibration import calibrate_sample, rectify_image
 from src.config import ProjectConfig, get_config
 from src.dataset import iterate_image_ids
 from src.evaluation import MetricResult, evaluate_run, load_ground_truth_csv, mae, rmse
-from src.experiments import default_ground_truth_path, load_validation_image_ids
+from src.experiments.ground_truth import default_ground_truth_path, load_validation_image_ids
 from src.experiments.results import ExperimentResult
 from src.experiments.run_manager import RunManager
 from src.masks import mask_from_class
