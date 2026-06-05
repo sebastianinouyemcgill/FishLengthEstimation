@@ -61,7 +61,7 @@ def run_inference(
             continue
 
         image = sample.image
-        if cfg.apply_perspective_correction:
+        if cfg.use_perspective or cfg.apply_perspective_correction:
             calib = calibrate_sample(sample, cfg=cfg)
             if calib.homography is not None:
                 image = rectify_image(image, calib.homography)

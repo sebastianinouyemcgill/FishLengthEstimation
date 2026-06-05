@@ -81,11 +81,19 @@ class ProjectConfig:
     calibration_rect_mm: float = CALIBRATION_RECT_MM
     default_split: str = "test"
     measurement_method: str = "bbox"
-    apply_perspective_correction: bool = False
+    use_perspective: bool = False
+    apply_perspective_correction: bool = False  # legacy alias; kept in sync via __post_init__
 
     use_grid_auto_calibration: bool = False
+    use_grid_calibration: bool = False  # alias; synced in __post_init__
     use_depth_estimation: bool = False
+    use_depth_model: bool = False  # alias; synced in __post_init__
     use_3d_measurement: bool = False
+    use_regression_model: bool = False
+    regression_model_path: Path | None = None
+    regression_train_split: str = "valid"
+    use_hrnet_keypoints: bool = False
+    use_pseudo_label_training: bool = False
     grid_square_mm: float = GRID_SQUARE_MM
     depth_model_name: str = "depth-anything/DA3-SMALL"
     grid_ppm_ratio_min: float = 0.85
@@ -94,6 +102,20 @@ class ProjectConfig:
     visualize_grid_debug: bool = False
 
     image_extensions: tuple[str, ...] = (".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff")
+
+    def __post_init__(self) -> None:
+        """Keep perspective and experimental flag aliases aligned."""
+        synced = self.use_perspective or self.apply_perspective_correction
+        object.__setattr__(self, "use_perspective", synced)
+        object.__setattr__(self, "apply_perspective_correction", synced)
+
+        grid = self.use_grid_auto_calibration or self.use_grid_calibration
+        object.__setattr__(self, "use_grid_auto_calibration", grid)
+        object.__setattr__(self, "use_grid_calibration", grid)
+
+        depth = self.use_depth_estimation or self.use_depth_model
+        object.__setattr__(self, "use_depth_estimation", depth)
+        object.__setattr__(self, "use_depth_model", depth)
 
     def resolve_dataset_root(self) -> Path:
         """
@@ -233,6 +255,7 @@ def get_config() -> ProjectConfig:
     if method := os.environ.get("FISHNET_METHOD"):
         cfg.measurement_method = method
     if _env_bool("FISHNET_PERSPECTIVE"):
+        cfg.use_perspective = True
         cfg.apply_perspective_correction = True
     if _env_bool("FISHNET_GRID_AUTO"):
         cfg.use_grid_auto_calibration = True

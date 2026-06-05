@@ -27,7 +27,7 @@ class RunExperimentsConfig:
     is built from ``pipelines`` × ``methods`` × ``splits``.
     """
 
-    pipelines: list[str] = field(default_factory=lambda: ["baseline"])
+    pipelines: list[str] = field(default_factory=lambda: ["baseline", "advanced"])
     methods: list[str] = field(default_factory=lambda: ["bbox", "pca", "skeleton"])
     splits: list[str] = field(default_factory=lambda: ["valid"])
 
@@ -43,9 +43,20 @@ class RunExperimentsConfig:
     run_name_template: str = "{pipeline}_{method}_v1"
 
     perspective: bool = False
-    use_grid_auto_calibration: bool = False
+    use_grid_auto_calibration: bool = True
     use_depth_estimation: bool = False
     use_3d_measurement: bool = False
+    use_hrnet_keypoints: bool = False
+    use_pseudo_label_training: bool = False
+    # Feature-based SH length calibration (trains on validation_lengths.csv)
+    run_regression_calibration: bool = False
+    regression_run_name: str = "regression_calibrated_v1"
+    regression_model_type: str = "random_forest"
+    regression_train_split: str = "valid"
+
+    # Apply a saved regression model during baseline runs (requires regression_model_path)
+    use_regression_model: bool = False
+    regression_model_path: Path | None = None
 
     experiments: list[dict[str, Any]] | None = None
     stop_on_error: bool = False
@@ -140,13 +151,55 @@ def build_experiment_specs(run_cfg: RunExperimentsConfig) -> list[dict[str, Any]
                     spec["use_depth_estimation"] = run_cfg.use_depth_estimation
                     spec["use_3d_measurement"] = run_cfg.use_3d_measurement
 
+                if pipeline == "baseline" and run_cfg.use_regression_model:
+                    spec["use_regression_model"] = True
+                    if run_cfg.regression_model_path:
+                        spec["regression_model_path"] = run_cfg.regression_model_path
+
                 specs.append(spec)
     return specs
 
 
-def preview_experiment_specs(specs: list[dict[str, Any]]) -> pd.DataFrame:
+def benchmark_experiment_specs(
+    run_cfg: RunExperimentsConfig | None = None,
+) -> list[dict[str, Any]]:
+    """
+    Official benchmark grid: baseline methods + grid-calibrated advanced (skeleton).
+
+    Depth, 3D, and perspective experiments are excluded.
+    """
+    run_cfg = run_cfg or RunExperimentsConfig(
+        pipelines=["baseline", "advanced"],
+        methods=["bbox", "pca", "skeleton"],
+        use_grid_auto_calibration=True,
+        use_depth_estimation=False,
+        use_3d_measurement=False,
+        perspective=False,
+    )
+    return build_experiment_specs(run_cfg)
+
+
+def preview_experiment_specs(
+    specs: list[dict[str, Any]],
+    run_cfg: RunExperimentsConfig | None = None,
+) -> pd.DataFrame:
     """Human-readable preview before launching runs."""
     rows = []
+    if run_cfg and run_cfg.run_regression_calibration:
+        rows.append(
+            {
+                "run_name": run_cfg.regression_run_name,
+                "pipeline": "regression",
+                "method": "calibrated",
+                "split": run_cfg.splits[0] if run_cfg.splits else "valid",
+                "visualize": False,
+                "perspective": False,
+                "grid": False,
+                "depth": False,
+                "3d": False,
+                "regression": True,
+            }
+        )
     for spec in specs:
         rows.append(
             {
@@ -159,9 +212,56 @@ def preview_experiment_specs(specs: list[dict[str, Any]]) -> pd.DataFrame:
                 "grid": spec.get("use_grid_auto_calibration", False),
                 "depth": spec.get("use_depth_estimation", False),
                 "3d": spec.get("use_3d_measurement", False),
+                "regression": spec.get("use_regression_model", False),
             }
         )
     return pd.DataFrame(rows)
+
+
+def run_configured_experiments(
+    run_cfg: RunExperimentsConfig,
+    specs: list[dict[str, Any]],
+    *,
+    cfg: ProjectConfig | None = None,
+) -> pd.DataFrame:
+    """
+    Run standard experiment specs plus optional regression calibration.
+
+    Used by ``03_run_experiments.ipynb`` when ``RUN=True``.
+    """
+    from src.experiments import run_experiment, run_regression_experiment
+
+    cfg = cfg or project_config_for_experiments(run_cfg)
+    results = []
+
+    if run_cfg.run_regression_calibration:
+        results.append(
+            run_regression_experiment(
+                cfg,
+                run_name=run_cfg.regression_run_name,
+                train_split=run_cfg.regression_train_split,
+                eval_split=run_cfg.splits[0] if run_cfg.splits else None,
+                overwrite=run_cfg.overwrite,
+                evaluate=run_cfg.evaluate,
+                validation_set_only=run_cfg.validation_set_only,
+                image_ids=run_cfg.image_ids,
+                model_type=run_cfg.regression_model_type,
+            )
+        )
+
+    for spec in specs:
+        try:
+            results.append(run_experiment(cfg=cfg, **spec))
+        except Exception:
+            if run_cfg.stop_on_error:
+                raise
+            import logging
+
+            logging.getLogger(__name__).exception("Experiment failed: %s", spec)
+
+    from src.experiments.results import results_to_dataframe
+
+    return results_to_dataframe(results)
 
 
 def filter_summary(

@@ -12,7 +12,8 @@ from dataclasses import dataclass
 from pathlib import Path
 
 from src.config import ProjectConfig, get_config
-from src.pipelines.advanced_inference import run_advanced_inference, uses_advanced_features
+from src.pipelines.advanced_inference import run_advanced_inference
+from src.pipelines.routing import uses_advanced_inference_path, uses_production_advanced_features
 from src.pipelines.base import run_inference
 
 logger = logging.getLogger(__name__)
@@ -48,15 +49,15 @@ class AdvancedPipeline:
         if use_3d_measurement is not None:
             cfg.use_3d_measurement = use_3d_measurement
 
-        # Perspective homography is legacy advanced; disable when modern stages are on
-        if uses_advanced_features(cfg):
+        cfg.use_perspective = perspective
+        cfg.apply_perspective_correction = perspective
+
+        if uses_production_advanced_features(cfg) and perspective:
+            logger.info(
+                "Ignoring perspective=True: grid/HRNet advanced path uses raw image space"
+            )
+            cfg.use_perspective = False
             cfg.apply_perspective_correction = False
-            if perspective:
-                logger.info(
-                    "Ignoring perspective=True: grid/depth/3D advanced path uses raw image space"
-                )
-        else:
-            cfg.apply_perspective_correction = perspective
         return cfg
 
     def run(
@@ -99,10 +100,10 @@ class AdvancedPipeline:
             cfg.use_grid_auto_calibration,
             cfg.use_depth_estimation,
             cfg.use_3d_measurement,
-            cfg.apply_perspective_correction,
+            cfg.use_perspective,
         )
 
-        if uses_advanced_features(cfg):
+        if uses_advanced_inference_path(cfg):
             return run_advanced_inference(
                 cfg,
                 split=split,

@@ -12,6 +12,7 @@ Primary entry points::
 from __future__ import annotations
 
 import logging
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -19,11 +20,13 @@ import pandas as pd
 
 from src.config import ProjectConfig, get_config
 from src.evaluation import MetricResult, evaluate_run, load_predictions_csv
+from src.experiments.regression import run_regression_experiment
 from src.experiments.results import ExperimentResult, results_to_dataframe
 from src.experiments.run_manager import RunExistsError, RunManager
 from src.pipelines.advanced import AdvancedPipeline
 from src.pipelines.baseline import BaselinePipeline
 from src.pipelines.registry import get_pipeline
+from src.pipelines.routing import resolve_run_config
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +36,7 @@ __all__ = [
     "ExperimentResult",
     "run_experiment",
     "run_experiments",
+    "run_regression_experiment",
     "results_to_dataframe",
     "default_ground_truth_path",
     "load_validation_image_ids",
@@ -101,6 +105,8 @@ def run_experiment(
     use_grid_auto_calibration: bool | None = None,
     use_depth_estimation: bool | None = None,
     use_3d_measurement: bool | None = None,
+    use_regression_model: bool | None = None,
+    regression_model_path: Path | str | None = None,
 ) -> ExperimentResult:
     """
     Run one experiment into ``outputs/runs/<run_name>/``.
@@ -139,29 +145,19 @@ def run_experiment(
 
     pipe = get_pipeline(pipeline)
 
-    if isinstance(pipe, BaselinePipeline):
-        use_perspective = False
-        adv_grid = adv_depth = adv_3d = False
-    else:
-        use_perspective = bool(perspective)
-        cfg_adv = cfg or get_config()
-        adv_grid = (
-            use_grid_auto_calibration
-            if use_grid_auto_calibration is not None
-            else cfg_adv.use_grid_auto_calibration
-        )
-        adv_depth = (
-            use_depth_estimation
-            if use_depth_estimation is not None
-            else cfg_adv.use_depth_estimation
-        )
-        adv_3d = (
-            use_3d_measurement
-            if use_3d_measurement is not None
-            else cfg_adv.use_3d_measurement
-        )
-        if adv_grid or adv_depth or adv_3d:
-            use_perspective = False
+    cfg, use_perspective, adv_grid, adv_depth, adv_3d, _adv_hrnet = resolve_run_config(
+        cfg,
+        pipeline=pipeline,
+        perspective=perspective,
+        use_grid_auto_calibration=use_grid_auto_calibration,
+        use_depth_estimation=use_depth_estimation,
+        use_3d_measurement=use_3d_measurement,
+    )
+
+    if use_regression_model is not None:
+        cfg = replace(cfg, use_regression_model=use_regression_model)
+    if regression_model_path is not None:
+        cfg = replace(cfg, regression_model_path=Path(regression_model_path))
 
     manager = RunManager(cfg)
     resolved_name = manager.resolve_run_name(run_name, pipeline=pipeline, method=method)
@@ -181,6 +177,8 @@ def run_experiment(
             "use_grid_auto_calibration": adv_grid,
             "use_depth_estimation": adv_depth,
             "use_3d_measurement": adv_3d,
+            "use_hrnet_keypoints": cfg.use_hrnet_keypoints,
+            "experimental_disabled_by_policy": not adv_depth and not adv_3d and not use_perspective,
         }
         if pipeline == "advanced"
         else None,

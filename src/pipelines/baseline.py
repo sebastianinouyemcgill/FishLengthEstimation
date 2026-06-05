@@ -57,6 +57,26 @@ class BaselinePipeline:
             method,
             len(image_ids) if image_ids else f"all(limit={limit})",
         )
+        if cfg.use_regression_model:
+            if not cfg.regression_model_path or not Path(cfg.regression_model_path).is_file():
+                raise FileNotFoundError(
+                    "use_regression_model=True requires cfg.regression_model_path "
+                    "to an existing model file (run run_regression_experiment first)."
+                )
+            from src.models.length_regression import LengthRegressionModel
+            from src.pipelines.regression_inference import run_regression_inference
+
+            model = LengthRegressionModel.load(cfg.regression_model_path)
+            return run_regression_inference(
+                cfg,
+                split=split,
+                predictions_path=predictions_path,
+                model=model,
+                method=method,
+                limit=limit,
+                image_ids=image_ids,
+            )
+
         return run_inference(
             cfg,
             split=split,

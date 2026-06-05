@@ -150,6 +150,14 @@ def main() -> None:
     # Managed experiment mode when --pipeline or --run-name is set
     if args.pipeline or args.run_name:
         pipeline = args.pipeline or "baseline"
+        if (args.depth or args.use_3d or args.perspective) and pipeline == "advanced":
+            import os
+
+            if os.environ.get("FISHNET_ALLOW_EXPERIMENTAL", "").lower() not in ("1", "true", "yes"):
+                logger.warning(
+                    "Depth/3D/perspective flags are ignored unless FISHNET_ALLOW_EXPERIMENTAL=1 "
+                    "(archived experimental paths)"
+                )
         try:
             result = run_experiment(
                 pipeline=pipeline,

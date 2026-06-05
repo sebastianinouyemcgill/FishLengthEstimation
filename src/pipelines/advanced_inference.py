@@ -34,12 +34,14 @@ _DEBUG_LOG = Path(__file__).resolve().parents[2] / ".cursor" / "debug-95b075.log
 
 
 def uses_advanced_features(cfg: ProjectConfig) -> bool:
-    """True when any advanced-only stage is enabled."""
-    return (
-        cfg.use_grid_auto_calibration
-        or cfg.use_depth_estimation
-        or cfg.use_3d_measurement
-    )
+    """
+    True when the advanced inference loop should run (not baseline ``run_inference``).
+
+    Production: grid calibration, future HRNet. Experimental: depth / 3D (if allowed).
+    """
+    from src.pipelines.routing import uses_advanced_inference_path
+
+    return uses_advanced_inference_path(cfg)
 
 
 def _agent_log(
@@ -171,7 +173,9 @@ def _measure_sample(
     depth_map=None,
 ) -> float:
     """Single-image length in mm."""
-    if cfg.use_3d_measurement and cfg.use_depth_estimation:
+    from src.pipelines.routing import uses_experimental_features
+
+    if uses_experimental_features(cfg) and cfg.use_3d_measurement and cfg.use_depth_estimation:
         if depth_map is None:
             logger.warning("%s: missing depth for 3D measurement", sample.image_id)
             return float("nan")
@@ -236,11 +240,18 @@ def run_advanced_inference(
 
     Same CSV schema as baseline: ``image_id``, ``predicted_length_mm``.
     """
+    from src.pipelines.routing import uses_experimental_features
+
+    if cfg.use_hrnet_keypoints:
+        raise NotImplementedError(
+            "HRNet keypoint inference is not implemented yet; set use_hrnet_keypoints=False"
+        )
+
     predictions_path.parent.mkdir(parents=True, exist_ok=True)
     rows: list[dict[str, str | float]] = []
 
     depth_estimator = None
-    if cfg.use_depth_estimation:
+    if uses_experimental_features(cfg) and cfg.use_depth_estimation:
         depth_estimator = get_depth_estimator(cfg)
 
     if image_ids is not None:
@@ -282,7 +293,7 @@ def run_advanced_inference(
 
         depth_map = None
         depth_scale = 0.0
-        if cfg.use_depth_estimation and depth_estimator is not None:
+        if uses_experimental_features(cfg) and cfg.use_depth_estimation and depth_estimator is not None:
             depth_map = depth_estimator.predict_depth(
                 image,
                 image_id=sample.image_id,
