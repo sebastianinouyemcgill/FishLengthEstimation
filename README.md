@@ -1,6 +1,6 @@
 # FishNet CV — Fish Length Estimation
 
-Estimates **fish standard length (SH, mm)** from RGB images and **YOLO polygon** annotations (fish + blue/yellow 100 mm calibration markers).
+Estimates **fish standard length (SL, mm)** from RGB images and **YOLO polygon** annotations (fish + blue/yellow 100 mm calibration markers).
 
 ## Pipeline
 
@@ -53,7 +53,7 @@ data/fishnet/
 └── labels/{train,valid,test}/
 
 data/annotations/
-├── validation_lengths.csv    # manual SH lengths (notebook 02)
+├── validation_lengths.csv    # manual SL lengths (notebook 02)
 └── validation_lengths2.csv   # corrected labels
 ```
 
