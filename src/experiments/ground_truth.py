@@ -20,6 +20,8 @@ logger = logging.getLogger(__name__)
 GROUND_TRUTH_SOURCES: Final[dict[str, str]] = {
     "validation_lengths": "validation_lengths.csv",
     "validation_lengths2": "validation_lengths2.csv",
+    "test_lengths": "test_lengths.csv",
+    "test_lengths2": "test_lengths2.csv",
     "lengths_mm": "lengths_mm.csv",
 }
 
